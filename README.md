@@ -1,0 +1,2 @@
+# iTunesConnect_autoFill_IPA_GameInfo
+自动填写内购ID，创建证书，填写APP资料
