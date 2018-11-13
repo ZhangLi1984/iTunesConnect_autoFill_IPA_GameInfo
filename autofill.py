@@ -56,6 +56,17 @@ amount[348] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[51]/td'
 amount[28] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[93]/td'
 amount[288] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[46]/td'
 amount[588] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[58]/td'
+amount[118] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[18]/td'
+amount[73] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[11]/td'
+amount[298] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[47]/td'
+amount[50] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[8]/td'
+amount[318]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[49]/td'
+amount[123]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[19]/td'
+amount[93]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[14]/td'
+amount[138]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[21]/td'
+amount[348]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[51]/td'
+amount[78]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[12]/td'
+amount[168]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[26]/td'
 
 #游戏基本资料
 def gameInfo():
@@ -103,14 +114,14 @@ def login():
     time.sleep(1)
     driver.find_element_by_id("sign-in").click()
     print '账号登录成功!!!!!!'
-    time.sleep(25)
+    time.sleep(50)
     driver.find_elements_by_class_name("icon-wrapper")[0].click()
     print '点击了我的App'
     time.sleep(28)
     # driver.find_element_by_link_text(zhanghao()[0]).click()  # 点击那个APP
     try:
-        #点击创建的游戏
-        driver.find_element_by_link_text(zhanghao()[0]+'-').click()
+        #点击创建的游戏 - -
+        driver.find_element_by_link_text(zhanghao()[0]+'--').click()
         time.sleep(8)
         if new_game_fill == '0':
             neigou()
@@ -147,7 +158,7 @@ def newGame():
     #平台
     driver.find_element_by_xpath('//*[@id="platforms"]/span/div[1]/div/span/a').click()
     #APP名字
-    driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[5]/span/input').send_keys(zhanghao()[0]+'-')
+    driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[5]/span/input').send_keys(zhanghao()[0]+'--')
     selectLanguade = Select(driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[6]/span/select'))
     selectLanguade.select_by_visible_text('简体中文')
     #选择ID
@@ -332,9 +343,9 @@ def save(row,index):
     driver.find_element_by_xpath(
         '//*[@id="iapwrapper"]/div[1]/form/div[9]/div[2]/div[4]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/span/input').send_keys(
         basePath + gameName + '/' + row[6])  # 上传图片
-    time.sleep(25)
+    time.sleep(50)
     driver.find_element_by_xpath('//*[@id="buttonGroupHeader"]/button[1]/span[2]').click()  # 储存
-    time.sleep(10)
+    time.sleep(20)
 
     # 获取内购的APPID：
     dr = driver.find_element_by_xpath('//*[@id="iapwrapper"]/div[1]/form/div[4]/div[2]/div[1]/div/p').text;
