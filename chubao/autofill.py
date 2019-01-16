@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 import time
-import  os
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -23,7 +23,9 @@ driver = webdriver.Chrome('/Users/a1/Downloads/chromedriver')
 
 #资料保存的路径可修改
 basePath = '/Users/a1/Desktop/smb/'
-yywappid = 'gz'
+#'/Users/lz/Desktop/chubao/'
+yywappid = 'qq'
+yywextend = '--'
 # 游戏资料表
 gameInfoPath = basePath + gameName + '/' + gameName + '.' + 'xlsx'
 #内购ID表
@@ -67,7 +69,7 @@ amount[138]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[21]/td'
 amount[348]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[51]/td'
 amount[78]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[12]/td'
 amount[168]= '//*[@id="tierSelectionID"]/div/table/tbody/tr[26]/td'
-
+amount[60] = '//*[@id="tierSelectionID"]/div/table/tbody/tr[9]/td'
 #游戏基本资料
 def gameInfo():
 
@@ -105,7 +107,7 @@ def zhanghao():
 #登录
 def login():
     driver.get('https://itunesconnect.apple.com/login')
-    time.sleep(25)
+    time.sleep(30)
     driver.switch_to_frame("aid-auth-widget-iFrame")
     driver.find_element_by_id("account_name_text_field").send_keys(zhanghao()[1])
     driver.find_element_by_id("sign-in").click()
@@ -117,11 +119,12 @@ def login():
     time.sleep(50)
     driver.find_elements_by_class_name("icon-wrapper")[0].click()
     print '点击了我的App'
-    time.sleep(28)
+    time.sleep(25)
     # driver.find_element_by_link_text(zhanghao()[0]).click()  # 点击那个APP
     try:
         #点击创建的游戏 - -
-        driver.find_element_by_link_text(zhanghao()[0]+'--').click()
+        print zhanghao()[0]+yywextend
+        driver.find_element_by_link_text(zhanghao()[0]+yywextend).click()
         time.sleep(8)
         if new_game_fill == '0':
             neigou()
@@ -144,21 +147,21 @@ def newGame():
     print '开始新建游戏...'
     driver.find_element_by_xpath('//*[@id="control-bar"]/div[1]/div[1]/a').click()
     time.sleep(1)
+    #点击新建App
     driver.find_element_by_xpath('//*[@id="new-menu"]/div[1]/a').click()
-    time.sleep(8)
-    
-    # el = driver.find_element_by_link_text('请在此处注册一个').is_displayed()
-    # if el:
-    #     driver.find_element_by_link_text('请在此处注册一个').click()
-    #     print '请在此注册一个'
-    #     time.sleep(10)
-    #     newCer()
-    #     return
-    
+    time.sleep(10)
+    el = driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[2]/div/div/div/div[1]/div/p/a').is_displayed()
+    if el:
+        driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[2]/div/div/div/div[1]/div/p/a').click()
+        print '点击此了注册'
+        time.sleep(10)
+        newCer()
+        return
+
     #平台
     driver.find_element_by_xpath('//*[@id="platforms"]/span/div[1]/div/span/a').click()
     #APP名字
-    driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[5]/span/input').send_keys(zhanghao()[0]+'--')
+    driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[5]/span/input').send_keys(zhanghao()[0]+yywextend)
     selectLanguade = Select(driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[6]/span/select'))
     selectLanguade.select_by_visible_text('简体中文')
     #选择ID
@@ -178,7 +181,9 @@ def newGame():
     driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[10]/span/input').send_keys(gameName)
     time.sleep(3)
     #用户访问权限
-    driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[11]/span/div/div[2]/div/span/a').click()
+#    if(driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[11]/span/div/div[2]/div/span/a').is_enabled):
+#          driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[2]/form/div/div[11]/span/div/div[2]/div/span/a').click()
+#    time.sleep(3)
     #创建
     driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[3]/div[1]/div/div/div/div/div[3]/div/button[2]').click()
     time.sleep(10)
@@ -187,7 +192,6 @@ def newGame():
 
 #创建证书
 def newCer():
-
     print('开始创建AppID...')
     time.sleep(20)
     # driver.find_element_by_xpath('//*[@id="ios-nav"]/li[3]/ul/li[1]/a/span').click()
@@ -317,18 +321,24 @@ def save(row,index):
     time.sleep(5)
     driver.find_element_by_xpath("//a[@class='addIcon ng-scope']").click()
     time.sleep(5)
+    
     # 消耗型还是非续期订阅
     if row[5] == 0:
-        driver.find_elements_by_xpath("//a[@class='radiostyle']")[3].click()
+        driver.find_elements_by_xpath("//a[@class='radiostyle']")[0].click()
+        time.sleep(5)
     else:
         driver.find_elements_by_xpath("//a[@class='radiostyle']")[0].click()
+        time.sleep(5)
 
-    time.sleep(5)
-    # driver.find_element_by_xpath("//button[text()='创建']").click()
-    driver.find_element(By.XPATH, '//button[text()="创建"]').click()
-    time.sleep(5)
+    time.sleep(1)
+    driver.find_element_by_xpath('//*[@id="iapwrapper"]/div[1]/div[7]/div/div/div/div[3]/div[2]/button[2]').click()
+    if index == 0:
+        time.sleep(20)
+#    driver.find_element(By.XPATH, '//button[text()="创建"]').click()
+    time.sleep(8)
+   #'//*[@id="iapwrapper"]/div[1]/form/div[5]/table/tbody/tr[2]/td[1]/div[1]/div[1]'
     driver.find_element_by_xpath('//*[@id="iapwrapper"]/div[1]/form/div[5]/table/tbody/tr[2]/td[1]/div[1]/div[1]').click()  # 价格等级
-    time.sleep(2)
+    time.sleep(5)
     if amount[row[2]]:
         driver.find_element_by_xpath(amount[row[2]]).click()
         # driver.find_element_by_xpath('//*[@id="tierSelectionID"]/div/table/tbody/tr[1]/td').click()  # 选择价格等级
@@ -345,13 +355,15 @@ def save(row,index):
         basePath + gameName + '/' + row[6])  # 上传图片
     time.sleep(50)
     driver.find_element_by_xpath('//*[@id="buttonGroupHeader"]/button[1]/span[2]').click()  # 储存
-    time.sleep(20)
+    time.sleep(25)
 
     # 获取内购的APPID：
     dr = driver.find_element_by_xpath('//*[@id="iapwrapper"]/div[1]/form/div[4]/div[2]/div[1]/div/p').text;
+    time.sleep(5)
     # print ('行数：'+str(index)+'____'+'内购APPID:'+dr)
     style = xlwt.easyxf('');
     writeExcel(index,7,dr,style);
+    time.sleep(2)
     # value = dr.value_of_css_property('innerHTML')
     # //*[@id="iapwrapper"]/div[1]/form/div[4]/div[2]/div[1]/div/p
     # //*[@id="iapwrapper"]/div[1]/form/div[4]/div[2]/div[1]/div/p
@@ -361,9 +373,9 @@ def save(row,index):
         driver.find_element_by_xpath('//*[@id="buttonGroupHeader"]/button[2]/span[2]').click()  # 提交审核
     time.sleep(5)
     # 提示是否储存
-    saveEl = driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[4]/div/div[2]/div[4]/div/div/div/div[2]/div[1]/button').is_displayed();
-    if saveEl:
-        driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[4]/div/div[2]/div[4]/div/div/div/div[2]/div[1]/button').click();
+#    saveEl = driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[4]/div/div[2]/div[4]/div/div/div/div[2]/div[1]/button').is_displayed();
+#    if saveEl:
+#        driver.find_element_by_xpath('//*[@id="main-ui-view"]/div[4]/div/div[2]/div[4]/div/div/div/div[2]/div[1]/button').click();
     time.sleep(10);
 
 #内购的APPID 写入Excel
@@ -390,6 +402,18 @@ def neigou():
     except Exception as e:
         print '检查表格的名字是否正确'
         exit()
+
+    # 获取 AppleID 写入Excel
+    applename = driver.find_element_by_xpath('//*[@id="appStorePageContent"]/div[3]/div[1]/form/div[7]/div[2]/div/div[1]/div[1]/span[2]/span').text
+    appleappid = driver.find_element_by_xpath('//*[@id="appStorePageContent"]/div[3]/div[1]/form/div[7]/div[2]/div/div[1]/div[4]/div').text
+    print u"包名 = " + applename
+    print u"AppleID = "+ appleappid
+    style = xlwt.easyxf('');
+    writeExcel(tableinfo.nrows+2,1,applename,style);
+    time.sleep(1)
+    writeExcel(tableinfo.nrows+3,1,appleappid,style);
+    time.sleep(1)
+    
     list = []#内购表
     for i in range(tableinfo.nrows):
         # list 每行的数组
@@ -426,7 +450,7 @@ def filltext():
 
     #1.0 准备提交
     driver.find_element_by_link_text('1.0 准备提交').click()
-    time.sleep(8)
+    time.sleep(20)
     print '1.0准备提交'
 
 #    driver.find_element_by_xpath('//*[@id="localizationSection"]/div[2]/div[3]/div[1]/div[1]/div/div[1]/ul/li[2]/a/div/div').click();
@@ -604,7 +628,7 @@ print u'密码 :' +zhanghao()[2]
 print u'联系人:' +zhanghao()[3]
 print u'电话号码:'+zhanghao()[4]
 print 'APPID:'+'com.'+gameName+'.'+yywappid
-print '-----------------------'
+print '------------------------'
 
 #登录--start
 login()
