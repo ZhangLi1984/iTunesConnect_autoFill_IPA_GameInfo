@@ -14,14 +14,12 @@ import xlrd
 import xlwt
 from xlutils.copy import copy
 from xlwt import Style
-import pyautogui
-import pyperclip
 import sys
 import requests
 from hashlib import md5
 import pickle
 import json
-
+from requests import exceptions
 
 
 reload(sys)                      # reload 才能调用 setdefaultencoding 方法
@@ -30,10 +28,12 @@ xlrd.Book.encoding = "utf8"
 
 
 BASEPATH = os.path.abspath(os.curdir)
-# /Users/lz/PycharmProjects/untitled1
-# /Users/lz/PycharmProjects/untitled1/qc1121jjcjb001.apk
-
 APL_INFO_URL = 'https://cpanel.yayawan.com/?act=game.pack_tool_api&action=get_baidu_task&key=wxj9dlpe'
+APL_INFO_ERROR_URL = 'http://cpanel.yayawan.com/?act=game.pack_tool_api'
+
+# APL_INFO_URL = 'http://cpanel.kingoo.com.cn/?act=game.pack_tool_api&action=get_baidu_task&key=wxj9dlpe'
+# APL_INFO_ERROR_URL = 'http://cpanel.kingoo.com.cn/?act=game.pack_tool_api'
+
 BAIDUURL_LOGIN = 'http://app.baidu.com/'
 baidu_username = '18680442415'
 baidu_password = 'BDapp1988'
@@ -41,20 +41,30 @@ rk_username = 'mwlbear'
 rk_password = '@qq19028'
 
 driver = webdriver.Chrome('/Users/lz/Downloads/chromedriver')
-imagePath = '/Users/lz/Desktop/1.png'
+# imagePath = '/Users/lz/Desktop/1.png'
 
 
-#
 class APK(object):
     def __init__(self):
+        self.headers = {
+            'Connection': 'close',
+        }
         self.base_params = {
             'action': 'update_task_status',
             'key':'wxj9dlpe',
         }
     def apk_info(self):
-        r = requests.get(APL_INFO_URL)
-        return r.json()['data']
-
+        try:
+            # requests.adapters.DEFAULT_RETRIES = 5
+            r = requests.post(APL_INFO_URL,headers=self.headers)
+            if r.json()['err_code'] == 1:
+                # 无任务
+                print 'no task'
+                return {}
+            else:
+                return r.json()['data']
+        except exceptions as e:
+            print e
     def apk_report_error(self, ename, status,error):
         params = {
             'ename':ename,
@@ -62,8 +72,11 @@ class APK(object):
             'tag':error,
         }
         params.update(self.base_params)
-        r = requests.post('https://cpanel.yayawan.com/?act=game.pack_tool_api',data=params)
-        return r.json()
+        try:
+            r = requests.post(APL_INFO_ERROR_URL,data=params,headers=self.headers)
+            return r.json()
+        except exceptions as e:
+            print e
 
 apk = APK()
 # 若快识别验证码
@@ -96,16 +109,22 @@ class RClient(object):
         }
         params.update(self.base_params)
         files = {'image': ('a.jpg', im)}
-        r = requests.post('http://api.ruokuai.com/create.json', data=params, files=files, headers=self.headers)
-        return r.json()
+        try:
+            r = requests.post('http://api.ruokuai.com/create.json', data=params, files=files, headers=self.headers)
+            return r.json()
+        except exceptions as e:
+            print e
 
     def rk_report_error(self, im_id):
         params = {
             'id': im_id,
         }
         params.update(self.base_params)
-        r = requests.post('http://api.ruokuai.com/reporterror.json', data=params, headers=self.headers)
-        return r.json()
+        try:
+            r = requests.post('http://api.ruokuai.com/reporterror.json', data=params, headers=self.headers)
+            return r.json()
+        except exceptions as e:
+            print e
 
 rc = RClient(rk_username, rk_password, '121093', 'c746b4d86af24b27b18bd3c0a92a6a79')
 
@@ -145,20 +164,37 @@ def download_file(url):
                 #f.flush() commented by recommendation from J.F.Sebastian
     return local_filename
 
-def login():
+def login(info):
     print '开始登陆'
     driver.get(BAIDUURL_LOGIN)
-    # driver.maximize_window()
-    time.sleep(8)
+    time.sleep(15)
     driver.find_element_by_xpath('//*[@id="j-inheaderNew"]/div/ul[2]/li[2]/a').click()
     time.sleep(1)
     driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__userName"]').click()
-    driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__userName"]').send_keys(baidu_username)
-    time.sleep(2)
+    # 清除账号
+    '//*[@id="TANGRAM__PSP_10__userName_clearbtn"]'
+    time.sleep(1)
+    driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__userName"]').clear()
+    time.sleep(1)
+    driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__userName"]').send_keys(reinfo['bdusername'])
+    time.sleep(1)
     driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__password"]').click()
-    driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__password"]').send_keys(baidu_password)
+    time.sleep(1)
+    driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__password"]').send_keys(reinfo['bdpassword'])
     # 登录
     driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__submit"]').click()
+    # 账号密码错误
+    time.sleep(4)
+    try:
+        error = driver.find_element_by_xpath('//*[@id="TANGRAM__PSP_10__error"]')
+        if error.text.find('用户名或密码有误'):
+            apk.apk_report_error(reinfo['ename'], '12', "百度账号密码错误")
+            print '百度账号密码错误'
+            # 删除图片
+            exit()
+            return
+    except:
+        pass
     time.sleep(3)
     ecode = None
     time.sleep(8)
@@ -195,13 +231,14 @@ def login():
                 time.sleep(2)
             else:
                 break
-    pickle.dump(driver.get_cookies(), open("cookies.pkl", "wb"))
+    # pickle.dump(driver.get_cookies(), open("cookies.pkl", "wb"))
 
 def upload_first(reinfo):
     print '创建应用'
-    time.sleep(5)
+    time.sleep(2)
     driver.get('http://app.baidu.com/apps/')
-    time.sleep(1)
+
+    time.sleep(10)
     driver.find_element_by_xpath('/html/body/div[4]/div[4]/div/div[3]/div/a').click()
     driver.find_element_by_xpath('//*[@id="applink"]/span[1]/span[2]').click()
     time.sleep(3)
@@ -250,6 +287,7 @@ def upload_second(reinfo):
     driver.find_element_by_xpath('/html/body/div[4]/div[4]/div/div[3]/div[3]/div[1]/div/span[15]').click()
     # 完成
     driver.find_element_by_xpath('/html/body/div[4]/div[4]/div/div[3]/div[4]/div[2]/a[2]').click()
+    time.sleep(2)
     # 一句话描述
     subname =reinfo['subname']
     if len(subname)>30:
@@ -257,14 +295,29 @@ def upload_second(reinfo):
     else:
         subname = reinfo['subname']
 
-    print subname
-    driver.find_element_by_xpath('//*[@id="summary"]').click()
+    # print subname
+    # '//*[@id="summary"]'
+    # driver.find_element_by_xpath('//*[@id="summary"]').click()
     time.sleep(1)
     driver.find_element_by_xpath('//*[@id="summary"]').send_keys(subname)
     # 应用简介
     driver.find_element_by_xpath('//*[@id="description"]').click()
     time.sleep(1)
     driver.find_element_by_xpath('//*[@id="description"]').send_keys(reinfo['desc'])
+    time.sleep(5)
+    # 上传同名的应用报错
+    try:
+        sure = driver.find_element_by_xpath('//*[@id="dialogConfirm"]')
+        error = driver.find_element_by_xpath('//*[@id="dialog"]/div[2]/p').text
+        apk.apk_report_error(reinfo['ename'], '12', error)
+        driver.find_element_by_xpath('//*[@id="dialogConfirm"]').click()
+        print error
+        driver.find_element_by_xpath('//*[@id="j-inheaderNew"]/div/ul[2]/li[3]/a/span').click()
+        print '报错,退出登录'
+        return
+    except:
+        pass
+
     # 上传安装包 上完完成
     driver.find_element_by_xpath('//*[@id="btnUploadApk"]').find_element_by_name('file').send_keys(reinfo['url'])
     time.sleep(5)
@@ -285,6 +338,9 @@ def upload_second(reinfo):
             apk.apk_report_error(reinfo['ename'],'12',error)
             driver.find_element_by_xpath('//*[@id="dialogConfirm"]').click()
             print error
+            time.sleep(2)
+            driver.find_element_by_xpath('//*[@id="j-inheaderNew"]/div/ul[2]/li[3]/a/span').click()
+            print '报错,退出登录'
             return
         except:
             continue
@@ -295,18 +351,66 @@ def upload_second(reinfo):
         driver.find_element_by_xpath('//*[@id="btnAddScreen"]').find_element_by_name('file').send_keys(name)
     # 提交
     driver.find_element_by_xpath('//*[@id="divUpdate"]/form[2]/fieldset/div[2]/div[1]/div/div/a[1]').click()
-    time.sleep(20)
-    try:
-        driver.find_element_by_xpath('//*[@id="dialogConfirm"]')
-        error = driver.find_element_by_xpath('//*[@id="dialog"]/div[2]/p').text
-        driver.find_element_by_xpath('//*[@id="dialogConfirm"]').click()
-        apk.apk_report_error(reinfo['ename'], '12', error)
-        print error
-        return
-    except:
-        pass
+    time.sleep(12)
+    # 多次点击点击提交
+    i = 0
+    while(True):
+        
+        time.sleep(2)
+        print i
+        try:
+            # 确认
+            driver.find_element_by_xpath('//*[@id="dialogConfirm"]')
+            # 报错信息
+            error = driver.find_element_by_xpath('//*[@id="dialog"]/div[2]/p').text
+            # 点击确认
+            driver.find_element_by_xpath('//*[@id="dialogConfirm"]').click()
+            time.sleep(2)
+            if i !=4:
+                # 点击提交
+                driver.find_element_by_xpath('//*[@id="divUpdate"]/form[2]/fieldset/div[2]/div[1]/div/div/a[1]').click()
+            i = i + 1
+            if i == 4:
+                print error
+                apk.apk_report_error(reinfo['ename'], '12', error)
+                # 退出登录
+                driver.find_element_by_xpath('//*[@id="j-inheaderNew"]/div/ul[2]/li[3]/a/span').click()
+                print '报错,退出登录'
+                return
+        except:
+            pass
+
+
+    # for i in range(0,3):
+    #     print
+    #     try:
+    #         # 确认
+    #         driver.find_element_by_xpath('//*[@id="dialogConfirm"]')
+    #         # 报错信息
+    #         error = driver.find_element_by_xpath('//*[@id="dialog"]/div[2]/p').text
+    #         # 点击确认
+    #         driver.find_element_by_xpath('//*[@id="dialogConfirm"]').click()
+    #         time.sleep(2)
+    #         if i == 0:
+    #             # 点击提交
+    #             driver.find_element_by_xpath('//*[@id="divUpdate"]/form[2]/fieldset/div[2]/div[1]/div/div/a[1]').click()
+    #         if i == 1:
+    #             driver.find_element_by_xpath('//*[@id="divUpdate"]/form[2]/fieldset/div[2]/div[1]/div/div/a[1]').click()
+    #         if i == 2:
+    #             print error
+    #             apk.apk_report_error(reinfo['ename'], '12', error)
+    #             # 退出登录
+    #             driver.find_element_by_xpath('//*[@id="j-inheaderNew"]/div/ul[2]/li[3]/a/span').click()
+    #             print '报错,退出登录'
+    #             return
+    #     except:
+    #         pass
+
     # 成功上报
     apk.apk_report_error(reinfo['ename'],'11',None)
+    #退出登录
+    driver.find_element_by_xpath('//*[@id="j-inheaderNew"]/div/ul[2]/li[3]/a/span').click()
+    print '上传完成,退出登录'
 
 def removeapk(reinfo):
     # 删除apk 包
@@ -323,32 +427,46 @@ def removeapk(reinfo):
     time.sleep(2)
 
 if __name__ == '__main__':
-
-    login()
+    # login()
+    i = 0;
     while(True):
+        i = i + 1
         time.sleep(1)
         reinfo = apk.apk_info()
         if not reinfo:
             continue
-        print '---------------------------------------我是分割线----------------------------------'
-        print reinfo
+        currenttime = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+        print u'---------------------------------------我是分割线:' + str(i) +'------'+ currenttime + '----------------------------------'
         ename = reinfo['ename']
         icon = reinfo['icon']
-        print icon
         apkname = reinfo['name']
         subname = reinfo['subname']
+        dev_access = reinfo['dev_access']
+        print dev_access
+        if not dev_access:
+            print '没有百度账号'
+            apk.apk_report_error(reinfo['ename'], '12', "无百度账号")
+            continue
+        bdusername = reinfo['dev_access']['name']
+        bdpassword = reinfo['dev_access']['pswd']
+        reinfo['bdusername'] = bdusername
+        reinfo['bdpassword'] = bdpassword
         if not subname:
-            reinfo['subname'] = u'2019必玩手游!唯美画风,让你身临其境!'
-        print u'app名字:'+apkname
+            reinfo['subname'] = u'2019最新手游火爆开测，超好玩，登录立送万元大礼！'
+        print u'百度账号:'+bdusername
+        print u'百度账号密码:'+bdpassword
+        print u'游戏名:'+apkname
         print u'副标题:'+subname
         desc = reinfo['desc']
+        if len(desc) < 50:
+            reinfo['desc'] = u'这是一款纯正修仙题材的手机网游。绚丽的画面、丰富的剧情、独特的修仙风格，游戏拥有包括装备炼器、无敌萌宠、霸气战阵、炫酷神兵、灵脉修炼、多样副本等特色玩法，全新演绎即时战斗手游时代!!'
         images = reinfo['images']
         if not len(images):
             print '没有截图'
-
+            apk.apk_report_error(reinfo['ename'], '12', "无应用截图")
+            continue
         imagesurlList = images.split(',')
         apkurl = reinfo['url']
-        print apkurl
 
         imagename = dowmload_image(icon)
         # 下载icon
@@ -374,10 +492,12 @@ if __name__ == '__main__':
         # 下载APK包
         apkurl = download_file(apkurl)
         reinfo['url'] = BASEPATH + '/' + apkurl
-        print u'apk地址:' + reinfo['url']
+        print u'apk下载路径:' + reinfo['url']
 
-        # 下载icon
+        # 登录
+        login(reinfo)
+        # 上传
         upload_first(reinfo)
         upload_second(reinfo)
-        # 删除下载内容
+        # 删除
         removeapk(reinfo)
