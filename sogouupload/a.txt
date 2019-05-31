@@ -1,0 +1,2 @@
+APL_INFO_URL = 'http://cpanel.kingoo.com.cn/?act=game.pack_tool_api&action=get_baidu_task&key=wxj9dlpe'
+APL_INFO_ERROR_URL = 'http://cpanel.kingoo.com.cn/?act=game.pack_tool_api'
